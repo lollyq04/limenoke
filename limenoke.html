@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LimenOke</title>
+    <link rel="icon" href="limenoke.ico" type="image/x-icon">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+            --accent-color: #3498db;
+            --text-color: #ecf0f1;
+            --background-color: #1a1a1a;
+            --error-color: #e74c3c;
+        }
+        
+        * {
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        
+        .header {
+            background-color: var(--primary-color);
+            padding: 12px 15px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            position: relative;
+            z-index: 10;
+        }
+        
+        .header h1 {
+            font-size: 1.2rem;
+            margin: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .player-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            height: 0;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            background-color: black;
+        }
+        
+        #videoPlayer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        .video-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        
+        .video-wrapper:hover .video-controls,
+        .video-wrapper:active .video-controls,
+        .video-wrapper.touch-active .video-controls {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .next-btn {
+            background-color: rgba(52, 152, 219, 0.8);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        
+        .next-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .fullscreen-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0,0,0,0.5);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
+            z-index: 5;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .video-wrapper:hover .fullscreen-btn,
+        .video-wrapper:active .fullscreen-btn,
+        .video-wrapper.touch-active .fullscreen-btn {
+            opacity: 1;
+        }
+        
+        .search-container {
+            padding: 12px 15px;
+            background-color: var(--primary-color);
+            position: relative;
+        }
+        
+        #search {
+            width: 100%;
+            padding: 10px 15px 10px 40px;
+            border: none;
+            border-radius: 25px;
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            font-size: 14px;
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 30px;
+            top: 22px;
+            color: #7f8c8d;
+            font-size: 16px;
+        }
+        
+        .search-results {
+            position: absolute;
+            width: calc(100% - 30px);
+            max-height: 50vh;
+            overflow-y: auto;
+            background-color: var(--secondary-color);
+            border-radius: 0 0 10px 10px;
+            z-index: 100;
+            margin-top: -5px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            left: 15px;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .search-result-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .search-result-item .video-info {
+            display: flex;
+            align-items: center;
+            flex: 1;
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .search-result-item i {
+            margin-right: 10px;
+            color: #7f8c8d;
+            flex-shrink: 0;
+        }
+        
+        .search-result-item .add-btn {
+            color: var(--accent-color);
+            font-size: 18px;
+            padding: 5px;
+            flex-shrink: 0;
+        }
+        
+        .search-result-item:active {
+            background-color: rgba(255,255,255,0.1);
+        }
+        
+        .queue-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 15px;
+            background-color: var(--secondary-color);
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .queue-container h3 {
+            font-size: 1rem;
+            margin: 0 0 10px 0;
+            display: flex;
+            align-items: center;
+        }
+        
+        .queue-container h3 i {
+            margin-right: 8px;
+        }
+        
+        .queue-item {
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            background-color: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+        
+        .queue-item .video-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+        }
+        
+        .queue-item .remove {
+            color: #e74c3c;
+            cursor: pointer;
+            font-size: 16px;
+            margin-left: 10px;
+            flex-shrink: 0;
+        }
+        
+        .no-videos {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .folder-selector {
+            padding: 12px 15px;
+            background-color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+        
+        #folderPath {
+            flex: 1;
+            padding: 10px 15px 10px 40px;
+            border: none;
+            border-radius: 25px;
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        #selectFolder {
+            position: absolute;
+            right: 15px;
+            background: transparent;
+            color: #7f8c8d;
+            width: auto;
+            height: auto;
+            padding: 0;
+            border: none;
+            cursor: pointer;
+        }
+        
+        #selectFolder i {
+            font-size: 18px;
+        }
+        
+        .folder-icon {
+            position: absolute;
+            left: 30px;
+            color: #7f8c8d;
+            font-size: 16px;
+        }
+        
+        .footer {
+            background-color: var(--primary-color);
+            padding: 8px 10px;
+            text-align: center;
+            font-size: 11px;
+            color: #7f8c8d;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .footer-links a {
+            color: #7f8c8d;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--accent-color);
+            text-decoration: underline;
+        }
+
+        .disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .current-video {
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+        
+        .error-message {
+            color: var(--error-color);
+            padding: 10px;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        /* New overlay styles */
+        .buffering-overlay, .play-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 20;
+        }
+
+        .buffering-overlay i {
+            font-size: 50px;
+            color: white;
+            animation: spin 1s linear infinite;
+        }
+
+        .play-overlay {
+            cursor: pointer;
+        }
+
+        .play-overlay i {
+            font-size: 70px;
+            color: white;
+            padding-left: 10px;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Landscape optimization */
+        @media (orientation: landscape) {
+            .player-container {
+                flex-direction: row;
+            }
+            
+            .video-wrapper {
+                height: 100%;
+                padding-bottom: 0;
+                flex: 2;
+            }
+            
+            .queue-section {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
+            
+            .search-container, .queue-container {
+                flex: none;
+            }
+            
+            .queue-container {
+                flex: 1;
+                overflow-y: auto;
+            }
+        }
+        
+        /* Fullscreen styles */
+        :fullscreen .header,
+        :fullscreen .folder-selector,
+        :fullscreen .search-container,
+        :fullscreen .queue-container,
+        :fullscreen .footer {
+            display: none;
+        }
+        
+        :fullscreen .player-container {
+            height: 100vh;
+        }
+        
+        :fullscreen .video-wrapper {
+            height: 100vh;
+            padding-bottom: 0;
+        }
+        
+        /* Firefox fullscreen pseudo-class */
+        :-moz-full-screen {
+            width: 100% !important;
+            height: 100% !important;
+        }
+        
+        /* Safari fullscreen pseudo-class */
+        ::-webkit-full-screen {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        @media (max-width: 480px) {
+            .footer {
+                font-size: 10px;
+            }
+        
+            .footer-links {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+            }
+        
+            .footer-links span {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="limenoke.png" alt="LimenOke Logo" style="height: 30px; vertical-align: middle; margin-right: 8px;">
+        <h1 style="display: inline-block; vertical-align: middle;">LimenOke</h1>
+    </div>
+    
+    <div class="folder-selector">
+        <i class="fas fa-folder folder-icon"></i>
+        <input type="text" id="folderPath" placeholder="Select video folder..." readonly>
+        <button id="selectFolder" title="Change folder"><i class="fas fa-folder"></i></button>
+    </div>
+    
+    <div class="player-container">
+        <div class="video-wrapper">
+            <video id="videoPlayer" playsinline></video>
+            <button class="fullscreen-btn" id="fullscreenBtn" title="Toggle fullscreen">
+                <i class="fas fa-expand"></i>
+            </button>
+            <div class="video-controls">
+                <button class="next-btn" id="nextButton" title="Next">
+                    <i class="fas fa-step-forward"></i>
+                </button>
+            </div>
+            
+            <!-- New overlay elements -->
+            <div id="bufferingOverlay" class="buffering-overlay hidden">
+                <i class="fas fa-spinner fa-spin"></i>
+            </div>
+            
+            <div id="playOverlay" class="play-overlay hidden">
+                <i class="fas fa-play"></i>
+            </div>
+        </div>
+        
+        <div class="queue-section">
+            <div class="search-container disabled" id="searchContainer">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="search" placeholder="Search videos..." disabled>
+                <div class="search-results hidden" id="searchResults"></div>
+            </div>
+            
+            <div class="queue-container">
+                <h3><i class="fas fa-list"></i> Queue</h3>
+                <div id="queueList"></div>
+                <div id="noVideos" class="no-videos">No videos in queue</div>
+                <div id="errorMessage" class="error-message hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="footer-links">
+            <a href="https://www.youtube.com/@gr8teacher04" target="_blank" rel="noopener noreferrer">LimenOke</a> 2025 | Powered by 
+            <a href="https://www.facebook.com/FreenetHotspot" target="_blank" rel="noopener noreferrer">Freenet.Hotspot</a>
+        </div>
+    </div>
+
+    <script>
+        // DOM elements
+        const videoPlayer = document.getElementById('videoPlayer');
+        const nextButton = document.getElementById('nextButton');
+        const searchInput = document.getElementById('search');
+        const searchContainer = document.getElementById('searchContainer');
+        const searchResults = document.getElementById('searchResults');
+        const queueList = document.getElementById('queueList');
+        const noVideos = document.getElementById('noVideos');
+        const folderPathInput = document.getElementById('folderPath');
+        const selectFolderButton = document.getElementById('selectFolder');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const videoWrapper = document.querySelector('.video-wrapper');
+        const errorMessage = document.getElementById('errorMessage');
+        const bufferingOverlay = document.getElementById('bufferingOverlay');
+        const playOverlay = document.getElementById('playOverlay');
+        
+        // State variables
+        let videoFiles = [];
+        let currentVideoIndex = -1;
+        let playQueue = [];
+        let folderHandle;
+        let isPlaying = false;
+        let controlsTimeout;
+        let touchTimer;
+        let isTouchDevice = false;
+        let currentVideoUrl = null;
+        let db;
+        
+        // Initialize the player
+        async function init() {
+            detectTouchDevice();
+            setupEventListeners();
+            
+            try {
+                // Initialize IndexedDB
+                db = await initDB();
+                
+                // Try to load saved folder
+                const savedHandle = await getSavedFolderHandle();
+                if (savedHandle) {
+                    folderHandle = savedHandle;
+                    folderPathInput.value = folderHandle.name;
+                    await loadVideoFiles();
+                    enableSearch();
+                } else {
+                    // Fallback to localStorage if IndexedDB fails
+                    const savedFolderPath = localStorage.getItem('videoFolderPath');
+                    if (savedFolderPath) {
+                        folderPathInput.value = savedFolderPath;
+                    }
+                }
+            } catch (error) {
+                console.error('Initialization error:', error);
+                showError('Initialization failed. Please refresh the page.');
+            }
+        }
+        
+        // Initialize IndexedDB
+        async function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('LimenOkeDB', 1);
+                
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains('videoFolders')) {
+                        db.createObjectStore('videoFolders', { keyPath: 'id' });
+                    }
+                };
+                
+                request.onsuccess = (event) => resolve(event.target.result);
+                request.onerror = (event) => reject(event.target.error);
+            });
+        }
+        
+        // Get saved folder handle from IndexedDB
+        async function getSavedFolderHandle() {
+            try {
+                const tx = db.transaction('videoFolders', 'readonly');
+                const store = tx.objectStore('videoFolders');
+                const result = await store.get(1);
+                return result?.handle || null;
+            } catch (error) {
+                console.error('Failed to load folder:', error);
+                return null;
+            }
+        }
+        
+        // Save folder handle to IndexedDB
+        async function saveFolderHandle(handle) {
+            try {
+                const tx = db.transaction('videoFolders', 'readwrite');
+                const store = tx.objectStore('videoFolders');
+                await store.put({ id: 1, name: handle.name, handle: handle });
+                return tx.complete;
+            } catch (error) {
+                console.error('Failed to save folder:', error);
+                // Fallback to localStorage
+                localStorage.setItem('videoFolderPath', handle.name);
+            }
+        }
+        
+        function detectTouchDevice() {
+            isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        }
+        
+        function setupEventListeners() {
+            // Video controls
+            nextButton.addEventListener('click', playNextVideo);
+            videoPlayer.addEventListener('ended', playNextVideo);
+            fullscreenBtn.addEventListener('click', toggleFullscreen);
+            
+            // Folder selection
+            selectFolderButton.addEventListener('click', selectFolder);
+            
+            // Search functionality
+            searchInput.addEventListener('input', handleSearch);
+            document.addEventListener('click', (e) => {
+                if (!searchContainer.contains(e.target)) {
+                    searchResults.classList.add('hidden');
+                }
+            });
+            
+            // Video controls visibility
+            if (isTouchDevice) {
+                videoWrapper.addEventListener('touchstart', handleTouchStart, { passive: true });
+                videoWrapper.addEventListener('touchend', handleTouchEnd, { passive: true });
+            } else {
+                videoWrapper.addEventListener('click', showControls);
+                videoWrapper.addEventListener('mousemove', showControls);
+            }
+            
+            // Fullscreen change events
+            document.addEventListener('fullscreenchange', handleFullscreenChange);
+            document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+            document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+            
+            // Video events
+            videoPlayer.addEventListener('error', handleVideoError);
+            videoPlayer.addEventListener('waiting', () => showBuffering(true));
+            videoPlayer.addEventListener('playing', () => showBuffering(false));
+            videoPlayer.addEventListener('stalled', handleNetworkIssue);
+            
+            // Clean up on page unload
+            window.addEventListener('beforeunload', () => {
+                if (currentVideoUrl) {
+                    URL.revokeObjectURL(currentVideoUrl);
+                }
+            });
+        }
+        
+        function handleTouchStart() {
+            videoWrapper.classList.add('touch-active');
+            clearTimeout(touchTimer);
+            touchTimer = setTimeout(() => {
+                videoWrapper.classList.remove('touch-active');
+            }, 3000);
+        }
+        
+        function handleTouchEnd() {
+            clearTimeout(touchTimer);
+        }
+        
+        function handleFullscreenChange() {
+            if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement) {
+                fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i>';
+            } else {
+                fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i>';
+            }
+        }
+        
+        function handleVideoError() {
+            showError('Error playing video. Moving to next video...');
+            setTimeout(playNextVideo, 2000);
+        }
+        
+        function handleNetworkIssue() {
+            showBuffering(true);
+            setTimeout(() => {
+                if (videoPlayer.networkState === videoPlayer.NETWORK_EMPTY || 
+                    videoPlayer.readyState < videoPlayer.HAVE_FUTURE_DATA) {
+                    videoPlayer.load();
+                    videoPlayer.play().catch(e => console.error('Retry failed:', e));
+                }
+            }, 2000);
+        }
+        
+        function showBuffering(show) {
+            if (show) {
+                bufferingOverlay.classList.remove('hidden');
+            } else {
+                bufferingOverlay.classList.add('hidden');
+            }
+        }
+        
+        function showPlayOverlay() {
+            playOverlay.classList.remove('hidden');
+            playOverlay.onclick = () => {
+                videoPlayer.play()
+                    .then(() => playOverlay.classList.add('hidden'))
+                    .catch(e => console.error('Play failed:', e));
+            };
+        }
+        
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.remove('hidden');
+            setTimeout(() => {
+                errorMessage.classList.add('hidden');
+            }, 5000);
+        }
+        
+        // Show video controls
+        function showControls() {
+            const controls = document.querySelector('.video-controls');
+            const fullscreenBtn = document.querySelector('.fullscreen-btn');
+            controls.style.opacity = '1';
+            controls.style.pointerEvents = 'auto';
+            fullscreenBtn.style.opacity = '1';
+            resetControlsTimeout();
+        }
+        
+        // Hide controls after delay
+        function resetControlsTimeout() {
+            clearTimeout(controlsTimeout);
+            controlsTimeout = setTimeout(() => {
+                const controls = document.querySelector('.video-controls');
+                const fullscreenBtn = document.querySelector('.fullscreen-btn');
+                controls.style.opacity = '0';
+                controls.style.pointerEvents = 'none';
+                fullscreenBtn.style.opacity = '0';
+                videoWrapper.classList.remove('touch-active');
+            }, 3000);
+        }
+        
+        // Toggle fullscreen mode
+        function toggleFullscreen() {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement) {
+                if (videoWrapper.requestFullscreen) {
+                    videoWrapper.requestFullscreen().catch(err => {
+                        showError(`Fullscreen error: ${err.message}`);
+                    });
+                } else if (videoWrapper.webkitRequestFullscreen) {
+                    videoWrapper.webkitRequestFullscreen();
+                } else if (videoWrapper.mozRequestFullScreen) {
+                    videoWrapper.mozRequestFullScreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                }
+            }
+        }
+        
+        // Enable search after folder is selected
+        function enableSearch() {
+            searchContainer.classList.remove('disabled');
+            searchInput.disabled = false;
+            searchInput.focus();
+        }
+        
+        // Select folder using File System Access API with fallback
+        async function selectFolder() {
+            try {
+                if (window.showDirectoryPicker) {
+                    folderHandle = await window.showDirectoryPicker();
+                    folderPathInput.value = folderHandle.name;
+                    await saveFolderHandle(folderHandle);
+                } else {
+                    showError("Advanced folder access not available - using limited file picker");
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.webkitdirectory = true;
+                    input.multiple = true;
+                    
+                    input.onchange = async (e) => {
+                        const files = Array.from(e.target.files);
+                        videoFiles = files
+                            .filter(file => checkSupportedFormats().some(ext => file.name.toLowerCase().endsWith(ext)))
+                            .map(file => ({ 
+                                name: file.name, 
+                                file: file
+                            }));
+                        
+                        if (videoFiles.length) {
+                            folderPathInput.value = 'Selected Folder (' + videoFiles.length + ' videos)';
+                            enableSearch();
+                            updateQueueDisplay();
+                            localStorage.setItem('lastVideoFiles', JSON.stringify(videoFiles.map(v => v.name)));
+                        } else {
+                            showError("No supported video files found");
+                        }
+                    };
+                    input.click();
+                }
+                await loadVideoFiles();
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    console.error('Error selecting folder:', error);
+                    showError('Folder access error: ' + error.message);
+                }
+            }
+        }
+        
+        // Check supported video formats
+        function checkSupportedFormats() {
+            const video = document.createElement('video');
+            const testFormats = {
+                'mp4': 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"',
+                'webm': 'video/webm; codecs="vp8, vorbis"',
+                'ogg': 'video/ogg; codecs="theora, vorbis"'
+            };
+            
+            return Object.keys(testFormats).filter(format => {
+                return video.canPlayType(testFormats[format]) !== '';
+            }).map(format => '.' + format);
+        }
+        
+        // Load video files from the selected folder
+        async function loadVideoFiles() {
+            if (!folderHandle && !videoFiles.length) return;
+            
+            try {
+                // If we already have files from the fallback picker, skip
+                if (folderHandle) {
+                    videoFiles = [];
+                    const allowedExtensions = checkSupportedFormats();
+                    
+                    for await (const entry of folderHandle.values()) {
+                        if (entry.kind === 'file') {
+                            const fileName = entry.name.toLowerCase();
+                            if (allowedExtensions.some(ext => fileName.endsWith(ext))) {
+                                videoFiles.push({
+                                    name: entry.name,
+                                    handle: entry
+                                });
+                            }
+                        }
+                    }
+                }
+                
+                if (videoFiles.length === 0) {
+                    showError('No supported video files found');
+                }
+                
+                updateQueueDisplay();
+            } catch (error) {
+                console.error('Error loading video files:', error);
+                showError('Error loading videos. Please check folder permissions.');
+            }
+        }
+        
+        // Play video by index
+        async function playVideo(index) {
+            if (index < 0 || index >= videoFiles.length) return;
+            
+            try {
+                currentVideoIndex = index;
+                let videoUrl;
+                
+                // Handle both File System API and fallback file objects
+                if (videoFiles[index].handle) {
+                    const file = await videoFiles[index].handle.getFile();
+                    videoUrl = URL.createObjectURL(file);
+                } else if (videoFiles[index].file) {
+                    videoUrl = URL.createObjectURL(videoFiles[index].file);
+                } else {
+                    throw new Error("No valid video source");
+                }
+
+                // Clean up previous video URL
+                if (currentVideoUrl) {
+                    URL.revokeObjectURL(currentVideoUrl);
+                }
+                
+                currentVideoUrl = videoUrl;
+                videoPlayer.src = videoUrl;
+                videoPlayer.load();
+                
+                // Try to play the video (may be blocked by browser autoplay policies)
+                const playPromise = videoPlayer.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.log('Autoplay prevented, showing play button');
+                        showPlayOverlay();
+                    });
+                }
+                
+                isPlaying = true;
+                updateQueueDisplay();
+            } catch (error) {
+                console.error('Error playing video:', error);
+                showError('Error loading video: ' + error.message);
+                setTimeout(playNextVideo, 2000);
+            }
+        }
+        
+        // Play next video in queue or in list
+        async function playNextVideo() {
+            try {
+                if (playQueue.length > 0) {
+                    const nextVideo = playQueue.shift();
+                    const index = videoFiles.findIndex(v => v.name === nextVideo);
+                    if (index !== -1) {
+                        await playVideo(index);
+                    }
+                } else if (videoFiles.length > 0) {
+                    const nextIndex = (currentVideoIndex + 1) % videoFiles.length;
+                    await playVideo(nextIndex);
+                }
+                
+                updateQueueDisplay();
+            } catch (error) {
+                console.error('Error playing next video:', error);
+                showError('Error moving to next video');
+            }
+        }
+        
+        // Handle search input with real-time filtering
+        function handleSearch() {
+            const query = searchInput.value.toLowerCase();
+            
+            if (query.length < 1) {
+                searchResults.classList.add('hidden');
+                return;
+            }
+            
+            const results = videoFiles.filter(video => 
+                video.name.toLowerCase().includes(query)
+            );
+            
+            displaySearchResults(results);
+        }
+        
+        // Display search results
+        function displaySearchResults(results) {
+            searchResults.innerHTML = '';
+            
+            if (results.length === 0) {
+                const noResults = document.createElement('div');
+                noResults.className = 'search-result-item';
+                noResults.innerHTML = '<div class="video-info"><i class="fas fa-exclamation-circle"></i> No results found</div>';
+                searchResults.appendChild(noResults);
+            } else {
+                results.forEach(video => {
+                    const item = document.createElement('div');
+                    item.className = 'search-result-item';
+                    item.innerHTML = `
+                        <div class="video-info">
+                            <i class="fas fa-video"></i>
+                            <span>${video.name}</span>
+                        </div>
+                        <i class="fas fa-plus add-btn" title="Add to queue"></i>
+                    `;
+                    
+                    const addBtn = item.querySelector('.add-btn');
+                    addBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        addToQueue(video.name);
+                    });
+                    
+                    item.addEventListener('click', () => {
+                        const index = videoFiles.findIndex(v => v.name === video.name);
+                        if (index !== -1) {
+                            playVideo(index);
+                            searchResults.classList.add('hidden');
+                        }
+                    });
+                    
+                    searchResults.appendChild(item);
+                });
+            }
+            
+            searchResults.classList.remove('hidden');
+        }
+        
+        // Add video to queue
+        function addToQueue(videoName) {
+            playQueue.push(videoName);
+            updateQueueDisplay();
+            searchInput.value = '';
+            searchResults.classList.add('hidden');
+        }
+        
+        // Remove video from queue
+        function removeFromQueue(index) {
+            playQueue.splice(index, 1);
+            updateQueueDisplay();
+        }
+        
+        // Update queue display
+        function updateQueueDisplay() {
+            queueList.innerHTML = '';
+            
+            if (playQueue.length === 0 && currentVideoIndex === -1) {
+                noVideos.style.display = 'block';
+            } else {
+                noVideos.style.display = 'none';
+                
+                // Show current playing video if any
+                if (currentVideoIndex !== -1 && isPlaying) {
+                    const currentItem = document.createElement('div');
+                    currentItem.className = 'queue-item current-video';
+                    currentItem.innerHTML = `
+                        <span class="video-name"><i class="fas fa-play"></i> ${videoFiles[currentVideoIndex].name}</span>
+                        <span>Now Playing</span>
+                    `;
+                    queueList.appendChild(currentItem);
+                }
+                
+                // Show queued videos
+                playQueue.forEach((video, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'queue-item';
+                    item.innerHTML = `
+                        <span class="video-name"><i class="fas fa-music"></i> ${video}</span>
+                        <span class="remove" data-index="${index}"><i class="fas fa-times"></i></span>
+                    `;
+                    const removeBtn = item.querySelector('.remove');
+                    removeBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        removeFromQueue(index);
+                    });
+                    
+                    item.addEventListener('click', () => {
+                        const videoIndex = videoFiles.findIndex(v => v.name === video);
+                        if (videoIndex !== -1) {
+                            playVideo(videoIndex);
+                        }
+                    });
+                    
+                    queueList.appendChild(item);
+                });
+            }
+        }
+        
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
